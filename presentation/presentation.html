@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Custom Compile-Time Errors with a Vengeance</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel='stylesheet' type='text/css' href='style.css' />
+</head>
+<body>
+<textarea id="source">
+
+class: center, middle, transition, intro
+
+# Custom Compile-Time Errors<br/ >with a Vengeance
+
+.horizontalCentered.caption[Daniel Beskin]
+
+---
+
+.opinions1[Opinions are my own]
+
+--
+
+.opinions2[... and my employer's]
+
+--
+
+.services[
+Reach out for:
+- Personalized workshops
+- Software development
+- Talks
+]
+
+.linksIntro.linkStackIntro[linksta.cc/@ncreep]
+
+---
+
+layout: true
+
+## In the Days of Yore
+---
+
+- We were too smart for our own good
+```scala
+type SchemaChecks =
+      HasAtMostFields[30] :: 
+      ExactlyOneOf[Key]::
+      ExactlyOneOf[Timestamp] :: 
+      StringFieldsAtMost[500] :: 
+      HasPrefix["tr"]
+```
+
+--
+
+- We thought implicits are the solution to every problem
+```scala
+def performChecks[A, Checks](
+	  using ev: CheckSuccess[Checks, A])
+```
+
+---
+
+- We got burned...
+```scala
+performChecks[HotelTable, SchemaChecks]
+```
+
+--
+
+<pre class="remark-code">
+	<span style="color: crimson">[error]</span> No given instance of type
+	<span style="color: crimson">[error]</span> CheckSuccess[SchemaOkay, HotelTable]
+	<span style="color: crimson">[error]</span> was found for parameter `ev` of `performChecks`
+</pre>
+
+
+???
+
+- TODO you were lucky if you hade an implicit trace you could debug
+- TODO mention implicitnotfound
+
+--
+
+- We can do better
+
+---
+
+layout: true
+
+## Artisanally Crafted Errors
+---
+
+- The `compiletime.error` function
+
+--
+- Type-level programming in Scala 3
+
+--
+- Developer-friendly custom errors
+
+--
+
+  - Guided by a realistic example
+  - No macros
+  - Not a tutorial
+
+---
+
+layout: false
+class: middle, transition
+
+> You know, several, you know, dozens of people spontaneously combust each year.  
+It's just not really widely reported.
+
+.footnote[David St. Hubbins, This Is Spinal Tap]
+
+---
+
+layout: true
+## The Problem
+
+---
+
+- A class representing a database schema
+- The DBAs have very strict requirements
+
+--
+  - At most 25 fields
+	- Exactly one key field
+	- Exactly one timestamp field
+	- Strings with at most 500 characters
+	- All fields have the prefix `tr`
+
+---
+
+.centered.dbas[![](dbas.jpg)]
+
+---
+
+```scala
+case class HotelTable(
+    trHotelId: Key,
+    trLastUpdate: Timestamp,
+    trHotelName: SizedString[200],
+    trHotelAddress: SizedString[200],
+    trCity: SizedString[100],
+    trState: SizedString[50],
+    trZipCode: SizedString[10],
+    trCountry: SizedString[20],
+    trPhoneNumber: SizedString[15],
+    trHotelWebsite: SizedString[200],
+    trHotelRating: Rating[5],
+    trAmenities: SizedString[300],
+    trNumberOfRooms: Natural,
+    ...
+)
+```
+
+---
+
+layout: true
+
+## The `error` Function
+
+---
+
+```scala
+scala> import scala.compiletime.*
+     | error("this is my custom error")
+{{content}}
+```
+
+--
+-- Error: -----------------------------
+2 |error("this is my custom error")
+|^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+|this is my custom error
+1 error found
+
+---
+
+layout: true
+
+## Size Error
+
+---
+
+```scala
+inline def checkSize[A](maxSize: Int)(
+    using caseClass: CaseClass[A]): Unit =
+
+{{content}}
+```
+
+--
+  inline if caseClass.size > maxSize then
+    error("Too many fields in class")
+--
+
+```scala
+scala> checkSize[HotelTable](20)
+-- Error: ----------------------
+1 |checkSize[HotelTable](20)
+  |^^^^^^^^^^^^^^^^^^^^^^^^^
+  |Too many fields in class
+1 error found
+```
+
+---
+
+```scala
+inline def checkSize[A](maxSize: Int)(
+    using caseClass: CaseClass[A]): Unit =
+
+  inline if caseClass.size > maxSize then
+    error(
+      "Too many fields in class:" +
+        caseClass.size + " > " +  maxSize)
+```
+
+--
+
+```scala
+scala> checkSize[HotelTable](20)
+-- Error: ----------------------
+1 |checkSize[HotelTable](20)
+  |^^^^^^^^^^^^^^^^^^^^^^^^^
+  |A literal string is expected as an argument to 
+  | `compiletime.error`. Got "Too many fields in 
+  | class:".+(22:Int).+(" > ").+(20)
+1 error found
+```
+
+???
+- TODO: mention why no string interpolation
+---
+
+layout: true
+
+## The Rules of Engagement
+
+---
+
+- The error message is evaluated at compile-time
+
+--
+
+- Only compile-time constant strings
+- Separated by `String.+`
+
+--
+
+- Okay: 
+  ```scala
+	error("my" + "error" + "here")
+	```
+- Not okay:
+  ```scala 
+  error(s"another ${getError()} " + 123)
+  ```
+
+---
+
+layout: true
+
+## Whither the Constants?
+
+---
+
+---
+
+- Literals:
+```scala
+"abc"
+```
+
+--
+
+- `inline` literals:
+```scala
+inline def message = "abc"
+```
+
+???
+- TODO: mention recursive inlines
+
+--
+
+- `constValue`:  
+```scala
+  type Message1 = "abc"
+  type Message2 = ToString[123]
+
+  constValue[Message1]
+  constValue[Message2]
+```
+
+---
+
+layout: true
+
+## Friendly Size Error
+
+---
+
+```scala
+inline def checkSize[A, MaxSize <: Int](
+    using cc: CaseClass[A]): Unit =
+
+{{content}}
+```
+--
+  inline if 
+    constValue[caseClass.Size] > constValue[MaxSize] 
+{{content}}
+--
+  then
+    error(
+      "Too many fields in class: " +
+        constValue[ToString[caseClass.Size]] +
+        " > " +
+        constValue[ToString[MaxSize]])
+
+
+--
+
+```scala
+scala> checkSize[HotelTable, 20]
+-- Error: ----------------------
+1 |checkSize[HotelTable, 20]
+  |^^^^^^^^^^^^^^^^^^^^^^^^^
+  |Too many fields in class: 22 > 20
+1 error found
+```
+
+---
+
+layout: true
+## Error Recap
+
+---
+
+- The `error` function works well for simple stuff
+- But using only constants is limiting
+- Need to take it to the type-level for its full potential
+
+---
+
+layout: false
+class: middle, transition
+
+> — It's such a fine line between stupid, and uh...
+
+> — Clever.
+
+> — Yeah, and clever.
+
+.footnote[David St. Hubbins, This Is Spinal Tap]
+---
+
+layout: true
+
+## The Type-level Language
+
+---
+
+- Match types
+
+- Recursive types
+
+- Singleton types
+
+- Arbitrary-sized tuples
+
+- Type lambdas
+
+- ...
+
+---
+
+```scala
+def nums = 1 :: 2 :: 3 :: 4 :: Nil
+
+{{content}}
+```
+
+--
+def map[A, B](ls: List[A], f: A => B): List[B] =
+  ls match
+    case Nil => Nil
+    case h :: t => f(h) :: map(t, f)
+
+{{content}}
+
+--
+def mapped = nums.map(i => i + 10)
+
+def filtered = mapped.filter(i => i < 14)
+
+{{content}}
+
+--
+def result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+
+---
+
+```scala
+type Nums = 1 :: 2 :: 3 :: 4 :: Nil
+
+type Map[A, B](ls: List[A], f: A => B): List[B] =
+  ls match
+    case Nil => Nil
+    case h :: t => f(h) :: map(t, f)
+
+type Mapped = nums.map(i => i + 10)
+
+type Filtered = mapped.filter(i => i < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[A, B](ls: List[A], f: A => B): List[B] =
+  ls match
+    case Nil => Nil
+    case h :: t => f(h) :: map(t, f)
+
+type Mapped = nums.map(i => i + 10)
+
+type Filtered = mapped.filter(i => i < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[T <: Tuple, F[_]] <: Tuple =
+  T match
+    case EmptyTuple => EmptyTuple
+    case h *: t => F[h] *: Map[t, F]
+
+type Mapped = nums.map(i => i + 10)
+
+type Filtered = mapped.filter(i => i < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[T <: Tuple, F[_]] <: Tuple =
+  T match
+    case EmptyTuple => EmptyTuple
+    case h *: t => F[h] *: Map[t, F]
+
+type Mapped = Nums Map ([I] =>> I + 10)
+
+type Filtered = mapped.filter(i => i < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[T <: Tuple, F[_]] <: Tuple =
+  T match
+    case EmptyTuple => EmptyTuple
+    case h *: t => F[h] *: Map[t, F]
+
+type Mapped = Nums Map ([I] =>> I + 10)
+
+type Filtered = Mapped Filter ([I] =>> I < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[T <: Tuple, F[_]] <: Tuple =
+  T match
+    case EmptyTuple => EmptyTuple
+    case h *: t => F[h] *: Map[t, F]
+
+type Mapped = Nums Map ([I] =>> I + 10)
+
+type Filtered = Mapped Filter ([I] =>> I < 14)
+
+type Result = 
+  Fold[Filtered, "", ([I, Acc] =>> ToString[I] ++ Acc)]
+```
+
+--
+
+```scala
+scala> constValue[Result]
+val res0: String = 111213
+```
+
+???
+- TODO: mention how in the past it was Prolog
+- TODO: this is a result we can use as an input to the `error` function
+
+---
+
+- A simple functional language
+
+- Tends to be loosely-typed
+
+- Quirky but serviceable 
+
+
+???
+- TODO loosely typed
+- TODO like many things in the Scala language, it's quirky but serviceable (about the type-level "language")
+- TODO a bit like Scala in the old days + no string interpolation
+
+---
+
+layout: false
+class: middle, transition
+
+> —  What we do is, if we need that extra push over the cliff, you know what we do?
+
+> — Put it up to eleven.
+
+> — Eleven. Exactly. One louder.
+
+.footnote[Nigel Tufnel, This Is Spinal Tap]
+
+---
+
+layout: true
+
+## Compile-time Inputs
+
+---
+
+
+```scala
+scala> summon[CaseClass[HotelTable]]
+val res1:
+  CaseClass[HotelTable]{
+    type Name = "HotelTable"
+    type Fields = (
+      Field["trHotelId", Key],
+      Field["trLastUpdate", Timestamp],
+      Field["trHotelName", SizedString[200]],
+      Field["trHotelAddress", SizedString[200]],
+      ...
+    )
+  } = anon$1@12811f95
+```
+
+???
+- TODO: mention `Mirror`
+
+---
+
+layout: true
+
+## Compile-time Checks "Framework"
+
+---
+
+---
+
+```scala
+trait Check[C[_ <: Tuple]]
+
+{{content}}
+```
+
+--
+type Error[Message <: String] = Message *: EmptyTuple
+type Okay = EmptyTuple
+
+{{content}}
+
+--
+type OrFailWith[
+  Cond <: Boolean, 
+  ErrorMessage <: String] = 
+
+  IfThenElse[Cond, Okay, Error[ErrorMessage]]
+
+{{content}}
+--
+type ApplyCheck[Fields] = [C] =>>
+  C match
+    case Check[check] => check[Fields]
+
+--
+
+- A type-level equivalent of
+```scala
+Validation[NonEmptyList[String], Unit]
+```
+
+???
+- TODO: Mention error accumulation
+- TODO: mention loosely typed (no one enforcing the kinds of tuples we are working with)
+
+---
+
+layout: true
+## Size Again
+
+---
+
+```scala
+type HasAtMostFields[MaxSize <: Int] = Check[
+  [Fields <: Tuple] =>> 
+
+{{content}}]
+```
+
+--
+  (Size[Fields] <= MaxSize) OrFailWith 
+    "Too many fields in class: " ++ 
+    ToString[Size[Fields]] ++ " > " ++ ToString[MaxSize]
+--
+
+```scala
+scala> val cc = summon[CaseClass[HotelTable]]
+     |
+     | type Result1 = 
+     |   ApplyCheck[cc.Fields][HasAtMostFields[30]]
+     | type Result2 = 
+     |   ApplyCheck[cc.Fields][HasAtMostFields[20]]
+
+// defined alias type Result1 = 
+  EmptyTuple
+// defined alias type Result2 = 
+  "Too many fields in class: 22 > 20" *: EmptyTuple
+```
+---
+
+layout: true
+
+## Exactly One
+
+---
+
+---
+
+```scala
+type ExactlyOneOf[Type, TypeName <: String] = Check[
+  [Fields <: Tuple] =>> 
+
+{{content}}]
+```
+
+???
+- TODO: no way of converting a type to a string name
+--
+  CollectFieldsOfType[Type, Fields] match
+    case EmptyTuple => 
+      Error["No [" ++ TypeName ++ "] field in class"]
+
+{{content}}
+--
+    case h *: EmptyTuple => Okay
+
+{{content}}
+--
+    case h *: t => Error[
+      "Expected exactly one [" ++ TypeName ++ "] " ++
+      "field in class, but got " ++ 
+      ToString[Size[h *: t]] ++ ": " ++
+      "[" ++ RenderFieldList[h *: t] ++ "]"
+    ]
+???
+- TODO: mention SIP-11 https://docs.scala-lang.org/sips/string-interpolation.html
+---
+
+```scala
+type CollectFieldsOfType[Type, Fields <: Tuple] =
+ Fields Filter 
+  ([Field] =>> GetFieldType[Field] Subtype Type)
+```
+
+--
+```scala
+type RenderFieldList[Fields <: Tuple] =
+  MkString[Fields Map GetFieldName]
+```
+
+--
+
+```scala
+type ExactlyOneKey =
+  ExactlyOneOf[Key, "Key"]
+```
+
+```scala
+type ExactlyOneTimestamp =
+  ExactlyOneOf[Timestamp, "Timestamp"]
+```
+
+---
+
+layout: true
+## Per-field Checks
+
+---
+
+---
+
+```scala
+type CheckAllFields[C[_]] =
+  Check[
+    [Fields <: Tuple] =>> 
+      Fields FlatMap ApplyToField[C]
+  ]
+```
+
+--
+
+```scala
+type ApplyToField[Check[_]] = 
+  [Field] =>> Check[Field] Map RenderFieldError[Field]
+```
+
+--
+
+```scala
+type RenderFieldError[Field] = [Error] =>> 
+  "[" ++ GetFieldName[Field] ++ "]: " ++ Error
+```
+
+---
+
+layout: true
+## Bounded Strings
+
+---
+
+---
+
+```scala
+type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields[
+  [Field] =>> 
+
+{{content}}]
+```
+--
+  GetFieldType[Field] match
+ 
+    case SizedString[n] =>
+      (n <= MaxSize) OrFailWith
+        "string too large: " ++
+        ToString[n] ++ " > " ++ ToString[MaxSize]
+
+{{content}}
+--
+    case String =>
+      Error["unbounded strings are not allowed"]
+
+    case _ => Okay
+---
+
+layout: true
+## Bogus Prefixes
+
+---
+
+```scala
+type HasPrefix[Prefix <: String] = CheckAllFields[
+  [Field] =>> 
+  
+    Matches[
+      GetFieldName[Field], Prefix ++ ".*"] OrFailWith
+      "field is missing prefix [" ++ Prefix ++ "]"
+]
+```
+
+???
+- TODO: mention weird legacy reasons for prefix
+- TODO: `Matches` is builtin and it would be very difficult to define it on your own, more functions would be welcome
+---
+
+
+layout: true
+
+## All Together Now
+
+---
+
+```scala
+type SchemaOkay =
+{{content}} 
+  EmptyTuple
+```
+--
+  
+  HasAtMostFields[25] *:
+{{content}}
+--
+  
+  ExactlyOneOf[Key, "Key"] *:
+  ExactlyOneOf[Timestamp, "Timestamp"] *:
+{{content}}
+--
+  
+  StringFieldsAtMost[500] *:
+{{content}}
+--
+  
+  HasPrefix["tr"] *:
+
+---
+
+layout: true
+
+## "Run Check, Run!"
+
+---
+
+---
+
+```scala
+type CheckAll[Fields <: Tuple, Checks <: Tuple] =
+  Checks FlatMap ApplyCheck[Fields]
+```
+
+--
+```scala
+inline def performChecks[Checks <: Tuple, A](
+  using caseClass: CaseClass[A]): Unit =
+  
+{{content}}
+```
+
+???
+- TODO: tying the value-level to the type-level
+--
+  type Errors = CheckAll[caseClass.Fields, Checks]
+
+{{content}}
+--
+  inline erasedValue[Errors] match
+{{content}}
+--
+    case _: EmptyTuple => ()
+
+{{content}}
+--
+    case _: (h *: t) => error(
+      constValue[RenderErrors[h *: t, caseClass.Name]])
+---
+
+```scala
+type RenderErrors[Errors <: Tuple, TypeName <: String] =
+  "Some checks failed for [" ++ TypeName ++ "]:\n" ++
+    MakeLines[Itemize[Errors]]
+
+type Itemize[Errors <: Tuple] =
+  Errors Map ([Err] =>> "- " ++ Err)
+```
+
+---
+
+layout: true
+
+## The Moment of Truth
+
+---
+
+---
+
+```scala
+scala> performChecks[SchemaOkay, HotelTable]
+
+scala>
+```
+
+---
+
+```scala
+scala> performChecks[SchemaOkay, BadHotelTable]
+
+{{content}}
+```
+--
+-- Error: ---------------------------------
+1 |performChecks[SchemaOkay, BadHotelTable]
+  |^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |Some checks failed for [BadHotelTable]:
+  |- Too many fields in class: 26 > 25
+  |- No [Key] field in class
+  |- Expected exactly one [Timestamp] field in class,
+  |  but got 2: [trLastUpdate, trCreationDate]
+  |- [trAmenities]: string too large: 1200 > 500
+  |- [cancellationPolicy]: string too large: 700 > 500
+  |- [roomTypes]: field is missing prefix [tr]
+  |- [description]: field is missing prefix [tr]
+  |- [cancellationPolicy]: field is missing prefix [tr]
+1 error found
+
+---
+
+.centered.happyDbas[![](happy-dbas.webp)]
+
+---
+
+layout: true
+## Errored Out
+
+---
+
+- The `error` function is quite powerful
+
+--
+- By harnessing the type-level "functional language"
+
+--
+- Craft beautiful, developer-friendly, compile-time errors
+
+--
+  - ~100 LOC
+  - Fairly readable code
+
+--
+- Exciting uncharted territory
+
+
+???
+- TODO comment about implementing everything with implicits
+- TODO enforcing complex invariants where they belong, at compile-time
+- TODO you can start simple
+- TODO was surprised myself by how well it worked out
+
+---
+
+layout: false
+class: transition
+
+.endQuote[
+> Well, I don't really think that the end can be assessed as of itself as being the end because what does the end feel like?
+]
+  
+.endQuote.footnote[David St. Hubbins, This Is Spinal Tap]
+
+.centered.linksFin.linkStackFin[https://linksta.cc/@ncreep]
+
+.githubLink.centered[
+https://github.com/ncreep/custom-compile-time-errors
+]
+
+???
+- You can find the full presentation and sample code here
+- Thank you
+
+
+</textarea>
+<script	src="remark-0.14.0.min.js"></script>
+
+<!-- For Scala 3 highlighting support -->
+<link rel="stylesheet" href="highlight.11.7.0.magula.min.css">
+<script src="highlight.11.7.0.min.js"></script>
+<script src="highlight.11.7.0.scala.min.js"></script>
+
+<script>
+// overriding the built-in highlighter with the newer version
+remark.highlighter.engine = hljs;
+</script>
+
+<script type="text/javascript">
+  var slideshow = remark.create({
+	countIncrementalSlides: false,
+  highlightLines: true,
+	highlightLanguage: 'scala',
+	highlightStyle: 'magula' // default, googlecode, magula, vs
+});
+</script>
+</body>
+</html>

@@ -14,25 +14,26 @@ type Okay = EmptyTuple
 type OrFailWith[Cond <: Boolean, ErrorMessage <: String] = 
   IfThenElse[Cond, Okay, Error[ErrorMessage]]
 
-type ApplyCheck[Fields] = [C] =>> C match
-  case Check[check] => check[Fields]
+type CheckAllFields[C[_]] =
+  Check[[Fields <: Tuple] =>> Fields FlatMap ApplyToField[C]]
+
+type ApplyToField[Check[_]] = [Field] =>> Check[Field] Map RenderFieldError[Field]
+
+type RenderFieldError[Field] = [Error] =>> "[" ++ GetFieldName[Field] ++ "]: " ++ Error
+
+type ApplyCheck[Fields] = [C] =>> 
+  C match
+    case Check[check] => check[Fields]
 
 type CheckAll[Fields <: Tuple, Checks <: Tuple] =
   Checks FlatMap ApplyCheck[Fields]
 
-type CheckAllFields[C[_]] =
-  Check[[Fields <: Tuple] =>> Fields FlatMap ApplyToField[C]]
-
-type RenderFieldError[Field] = [Error] =>> "[" ++ GetName[Field] ++ "]: " ++ Error
-
-type ApplyToField[Check[_]] = [Field] =>> Check[Field] Map RenderFieldError[Field]
-
-inline def performChecks[Checks <: Tuple, A](using fields: CaseClassFields[A]): Unit =
-  type Errors = CheckAll[fields.Values, Checks]
+inline def performChecks[Checks <: Tuple, A](using caseClass: CaseClass[A]): Unit =
+  type Errors = CheckAll[caseClass.Fields, Checks]
 
   inline erasedValue[Errors] match
     case _: EmptyTuple => ()
-    case _: (h *: t) => error(constValue[RenderErrors[h *: t, fields.Name]])
+    case _: (h *: t) => error(constValue[RenderErrors[h *: t, caseClass.Name]])
 
 type RenderErrors[Errors <: Tuple, TypeName <: String] =
   "Some checks failed for [" ++ TypeName ++ "]:\n" ++

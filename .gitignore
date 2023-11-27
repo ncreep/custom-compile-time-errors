@@ -2,6 +2,8 @@
 .metals/
 .bloop/
 .bsp/
+.VSCodeCounter/
 .ammonite/
 metals.sbt
 .scala-build/
+notes.txt

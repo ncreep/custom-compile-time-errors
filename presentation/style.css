@@ -1,0 +1,381 @@
+.remark-slide-number {
+	display: none;
+  font-family: sans-serif;
+}
+
+.remark-slide .remark-slide-content {
+	padding: 0.5em 0.63em;
+}
+
+.remark-slide-content {
+	font-size: 1.8em;
+}
+
+body {
+	color: #191919;
+}
+
+p {
+	margin: 0.1em 0 0.4em 0;
+}
+
+code {
+	-moz-border-radius: 5px;
+	-web-border-radius: 5px;
+	border-radius: 5px;
+	font-weight: bold;
+	font-size: 1.0em;
+	font-family: 'Courier New', monospace;
+}
+
+.remark-code {
+	font-weight: 900;
+	font-size: 25px;
+}
+
+.smallCode .remark-code {
+  font-size: 19.5px;
+}
+
+pre {
+  margin-top: 0px;
+}
+
+pre code {
+	font-size: 0.88em;
+	background-color: #FFFFFF !important;
+}
+
+.bigCode .remark-inline-code {
+	font-size: 1.5em;
+}
+
+.bigCode code {
+  font-size: 1.0em;
+}
+
+.hljs-magula .hljs-comment {
+	color: #676767;
+}
+
+.hljs-magula .hljs-title {
+	color: rgb(41, 44, 47);
+}
+
+.hljs-magula .hljs-type {
+  color: rgb(41, 44, 47);
+}
+
+.hljs-magula .hljs-keyword {
+  color: #174082;
+}
+
+.remark-code-line {
+  color: rgb(41, 44, 47);
+}
+
+a {
+	text-decoration: none;
+}
+
+.rightFloat,.leftFloat {
+	font-size: 0.8em;
+}
+
+.codeFloatRight {
+	float: right;
+	font-size: 0.8em;
+}
+
+.rightFloat {
+	float: right;
+}
+
+.leftFloat {
+	float: left;
+}
+
+.caption {
+  position: absolute;
+  bottom: 60px;
+}
+
+.intro .caption {
+	font-size: 0.6em;
+}
+
+.footnote {
+	margin-top: 30px;
+	font-size: 0.6em;
+	float: left;
+}
+
+.gap {
+	display: block;
+	margin-top: 40px;
+}
+
+.intro h1 {
+	line-height: 1.8em;
+	font-size: 1.00em !important;
+}
+
+
+.transition, .transition p {
+	color: rgb(255, 255, 255);
+}
+
+.transition {
+	background-color: rgb(41, 44, 47);
+	line-height: 1.7em;
+	font-size: 2.8em
+}
+
+.transition a {
+	color: rgb(255, 255, 255);
+}
+
+.questions {
+	font-size: 0.8em;
+	display: block;
+	margin-top: 270px;
+}
+
+body {
+	font-family: arial, sans-serif;
+	font-weight: 400;
+}
+
+ul {
+	margin: 0.2em 0em 0.2em 0.3em;
+  color: rgb(41, 44, 47);
+}
+
+li {
+	margin-top: 35px;
+  color: rgb(41, 44, 47);
+}
+
+ol {
+	margin: 0.2em 0em 0.2em 0.3em;
+	color: rgb(41, 44, 47);
+}
+ol li::marker {
+	font-weight: bold;
+}
+
+h1, h2, h3 {
+	font-family: arial, sans-serif;
+	font-weight: bold;
+	margin: 5px 0px;
+}
+
+h1 {
+  color: rgb(255, 255, 255);
+	/*background-color: rgb(76, 102, 164);*/
+	border-radius: 10px;
+	padding: 5px 10px;
+}
+
+.remark-slide-content h1 {
+	font-size: 1.3em;
+}
+
+.remark-slide-content h2 {
+	font-size: 1.2em;
+	margin-bottom: 20px;
+}
+
+.remark-slide-content h3 {
+	font-size: 0.85em;
+}
+
+.slide .content {
+	padding: 10px 90px !important;
+}
+
+#slideshow .no-highlight {
+	font-size: 1em !important;
+}
+
+.remark-notes li {
+	margin: 0px;
+}
+
+.transition blockquote {
+  font-size: 0.6em;
+  font-style: normal;
+}
+
+.transition blockquote:before {
+  color: #FFFFFF;
+}
+
+blockquote {
+	font-style: italic;
+	margin: 0.25em 0;
+	padding: 0.25em 40px;
+	line-height: 1.45;
+	position: relative;
+	font-size: 0.95em;
+}
+
+blockquote:before {
+	opacity: 0.8;
+	display: block;
+	content: "\201C";
+	font-size: 3em;
+	position: absolute;
+  color: #000000;
+	left: 0px;
+	top: -20px;
+}
+
+.transition blockquote {
+	font-style: italic;
+	margin: 0.25em 0;
+	padding: 0.25em 40px;
+	line-height: 1.45;
+	position: relative;
+	font-size: 0.75em;
+}
+
+blockquote:before {
+	opacity: 0.8;
+	display: block;
+	content: "\201C";
+	font-size: 3em;
+	position: absolute;
+	left: -20px;
+	top: -20px;
+}
+
+blockquote cite {
+	opacity: 0.8;
+	font-size: 1em;
+	display: block;
+	margin-top: 5px;
+}
+
+blockquote cite:before {
+	content: "\2014 \2009";
+}
+
+.transition .footnote {
+  font-size: 0.5em;
+}
+
+@media print {
+  .remark-slide-scaler {
+    width: 100% !important;
+    height: 100% !important;
+    transform: scale(1) !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+}
+
+.centered {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.horizontalCentered {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.verticalCentered {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.endQuote {
+	margin-top: 140px;
+}
+
+.endQuote.footnote {
+  margin-top: 0;
+}
+
+.githubLink {
+  margin-top: 250px;
+  width: 900px;
+  font-size: 0.7em;
+  text-align: center;
+}
+
+.dbas img {
+	margin-top: 60px;
+	width: 600px;
+}
+
+.happyDbas img {
+	margin-top: 60px;
+	width: 800px;
+}
+
+@font-face {
+  font-family: 'splendid';
+  src: url('splendid-bold.ttf') format('truetype');
+}
+
+.opinions1 {
+	font-family: splendid;
+	vertical-align: middle;
+	text-align: center;
+	font-size: 1.8em;
+	width: 100%;
+	position: absolute;
+	transform: translateY(-50%);
+	left: 0%; 
+	top: 10%
+}
+
+.opinions2 {
+	font-family: splendid;
+	vertical-align: middle;
+	text-align: center;
+	font-size: 1.8em;
+	width: 100%;
+	position: absolute;
+	transform: translateY(-50%);
+	left: 0%; 
+	top: 17%
+}
+
+.services {
+	font-family: splendid;
+	font-size: 1.3em;
+	width: 150%;
+	position: absolute;
+	transform: translateY(-50%);
+	left: 5%; 
+	top: 50%
+}
+
+.linksIntro {
+	font-family: splendid;
+	display: block;
+	font-size: 1.4em;
+	margin-top: 500px;
+	text-align: center;
+}
+
+.linkStackIntro {
+	top: 80%;
+}
+
+.linksFin {
+	display: block;
+	text-align: center;
+	font-size: 0.7em;
+}
+
+.linkStackFin {
+	margin-top: 170px;
+}
