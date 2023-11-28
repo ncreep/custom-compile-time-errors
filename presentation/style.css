@@ -1,36 +1,36 @@
 .remark-slide-number {
-	display: none;
+  display: none;
   font-family: sans-serif;
 }
 
 .remark-slide .remark-slide-content {
-	padding: 0.5em 0.63em;
+  padding: 0.5em 0.63em;
 }
 
 .remark-slide-content {
-	font-size: 1.8em;
+  font-size: 1.8em;
 }
 
 body {
-	color: #191919;
+  color: #191919;
 }
 
 p {
-	margin: 0.1em 0 0.4em 0;
+  margin: 0.1em 0 0.4em 0;
 }
 
 code {
-	-moz-border-radius: 5px;
-	-web-border-radius: 5px;
-	border-radius: 5px;
-	font-weight: bold;
-	font-size: 1.0em;
-	font-family: 'Courier New', monospace;
+  -moz-border-radius: 5px;
+  -web-border-radius: 5px;
+  border-radius: 5px;
+  font-weight: bold;
+  font-size: 1.0em;
+  font-family: 'Courier New', monospace;
 }
 
 .remark-code {
-	font-weight: 900;
-	font-size: 25px;
+  font-weight: 900;
+  font-size: 25px;
 }
 
 .smallCode .remark-code {
@@ -42,12 +42,12 @@ pre {
 }
 
 pre code {
-	font-size: 0.88em;
-	background-color: #FFFFFF !important;
+  font-size: 0.88em;
+  background-color: #FFFFFF !important;
 }
 
 .bigCode .remark-inline-code {
-	font-size: 1.5em;
+  font-size: 1.5em;
 }
 
 .bigCode code {
@@ -55,11 +55,11 @@ pre code {
 }
 
 .hljs-magula .hljs-comment {
-	color: #676767;
+  color: #676767;
 }
 
 .hljs-magula .hljs-title {
-	color: rgb(41, 44, 47);
+  color: rgb(41, 44, 47);
 }
 
 .hljs-magula .hljs-type {
@@ -75,24 +75,24 @@ pre code {
 }
 
 a {
-	text-decoration: none;
+  text-decoration: none;
 }
 
 .rightFloat,.leftFloat {
-	font-size: 0.8em;
+  font-size: 0.8em;
 }
 
 .codeFloatRight {
-	float: right;
-	font-size: 0.8em;
+  float: right;
+  font-size: 0.8em;
 }
 
 .rightFloat {
-	float: right;
+  float: right;
 }
 
 .leftFloat {
-	float: left;
+  float: left;
 }
 
 .caption {
@@ -101,105 +101,105 @@ a {
 }
 
 .intro .caption {
-	font-size: 0.6em;
+  font-size: 0.6em;
 }
 
 .footnote {
-	margin-top: 30px;
-	font-size: 0.6em;
-	float: left;
+  margin-top: 30px;
+  font-size: 0.6em;
+  float: left;
 }
 
 .gap {
-	display: block;
-	margin-top: 40px;
+  display: block;
+  margin-top: 40px;
 }
 
 .intro h1 {
-	line-height: 1.8em;
-	font-size: 1.00em !important;
+  line-height: 1.8em;
+  font-size: 1.00em !important;
 }
 
 
 .transition, .transition p {
-	color: rgb(255, 255, 255);
+  color: rgb(255, 255, 255);
 }
 
 .transition {
-	background-color: rgb(41, 44, 47);
-	line-height: 1.7em;
-	font-size: 2.8em
+  background-color: rgb(41, 44, 47);
+  line-height: 1.7em;
+  font-size: 2.8em
 }
 
 .transition a {
-	color: rgb(255, 255, 255);
+  color: rgb(255, 255, 255);
 }
 
 .questions {
-	font-size: 0.8em;
-	display: block;
-	margin-top: 270px;
+  font-size: 0.8em;
+  display: block;
+  margin-top: 270px;
 }
 
 body {
-	font-family: arial, sans-serif;
-	font-weight: 400;
+  font-family: arial, sans-serif;
+  font-weight: 400;
 }
 
 ul {
-	margin: 0.2em 0em 0.2em 0.3em;
+  margin: 0.2em 0em 0.2em 0.3em;
   color: rgb(41, 44, 47);
 }
 
 li {
-	margin-top: 35px;
+  margin-top: 35px;
   color: rgb(41, 44, 47);
 }
 
 ol {
-	margin: 0.2em 0em 0.2em 0.3em;
-	color: rgb(41, 44, 47);
+  margin: 0.2em 0em 0.2em 0.3em;
+  color: rgb(41, 44, 47);
 }
 ol li::marker {
-	font-weight: bold;
+  font-weight: bold;
 }
 
 h1, h2, h3 {
-	font-family: arial, sans-serif;
-	font-weight: bold;
-	margin: 5px 0px;
+  font-family: arial, sans-serif;
+  font-weight: bold;
+  margin: 5px 0px;
 }
 
 h1 {
   color: rgb(255, 255, 255);
-	/*background-color: rgb(76, 102, 164);*/
-	border-radius: 10px;
-	padding: 5px 10px;
+  /*background-color: rgb(76, 102, 164);*/
+  border-radius: 10px;
+  padding: 5px 10px;
 }
 
 .remark-slide-content h1 {
-	font-size: 1.3em;
+  font-size: 1.3em;
 }
 
 .remark-slide-content h2 {
-	font-size: 1.2em;
-	margin-bottom: 20px;
+  font-size: 1.2em;
+  margin-bottom: 20px;
 }
 
 .remark-slide-content h3 {
-	font-size: 0.85em;
+  font-size: 0.85em;
 }
 
 .slide .content {
-	padding: 10px 90px !important;
+  padding: 10px 90px !important;
 }
 
 #slideshow .no-highlight {
-	font-size: 1em !important;
+  font-size: 1em !important;
 }
 
 .remark-notes li {
-	margin: 0px;
+  margin: 0px;
 }
 
 .transition blockquote {
@@ -212,53 +212,53 @@ h1 {
 }
 
 blockquote {
-	font-style: italic;
-	margin: 0.25em 0;
-	padding: 0.25em 40px;
-	line-height: 1.45;
-	position: relative;
-	font-size: 0.95em;
+  font-style: italic;
+  margin: 0.25em 0;
+  padding: 0.25em 40px;
+  line-height: 1.45;
+  position: relative;
+  font-size: 0.95em;
 }
 
 blockquote:before {
-	opacity: 0.8;
-	display: block;
-	content: "\201C";
-	font-size: 3em;
-	position: absolute;
+  opacity: 0.8;
+  display: block;
+  content: "\201C";
+  font-size: 3em;
+  position: absolute;
   color: #000000;
-	left: 0px;
-	top: -20px;
+  left: 0px;
+  top: -20px;
 }
 
 .transition blockquote {
-	font-style: italic;
-	margin: 0.25em 0;
-	padding: 0.25em 40px;
-	line-height: 1.45;
-	position: relative;
-	font-size: 0.75em;
+  font-style: italic;
+  margin: 0.25em 0;
+  padding: 0.25em 40px;
+  line-height: 1.45;
+  position: relative;
+  font-size: 0.75em;
 }
 
 blockquote:before {
-	opacity: 0.8;
-	display: block;
-	content: "\201C";
-	font-size: 3em;
-	position: absolute;
-	left: -20px;
-	top: -20px;
+  opacity: 0.8;
+  display: block;
+  content: "\201C";
+  font-size: 3em;
+  position: absolute;
+  left: -20px;
+  top: -20px;
 }
 
 blockquote cite {
-	opacity: 0.8;
-	font-size: 1em;
-	display: block;
-	margin-top: 5px;
+  opacity: 0.8;
+  font-size: 1em;
+  display: block;
+  margin-top: 5px;
 }
 
 blockquote cite:before {
-	content: "\2014 \2009";
+  content: "\2014 \2009";
 }
 
 .transition .footnote {
@@ -295,7 +295,7 @@ blockquote cite:before {
 }
 
 .endQuote {
-	margin-top: 140px;
+  margin-top: 140px;
 }
 
 .endQuote.footnote {
@@ -310,13 +310,13 @@ blockquote cite:before {
 }
 
 .dbas img {
-	margin-top: 60px;
-	width: 600px;
+  margin-top: 60px;
+  width: 600px;
 }
 
 .happyDbas img {
-	margin-top: 60px;
-	width: 800px;
+  margin-top: 60px;
+  width: 800px;
 }
 
 @font-face {
@@ -325,57 +325,61 @@ blockquote cite:before {
 }
 
 .opinions1 {
-	font-family: splendid;
-	vertical-align: middle;
-	text-align: center;
-	font-size: 1.8em;
-	width: 100%;
-	position: absolute;
-	transform: translateY(-50%);
-	left: 0%; 
-	top: 10%
+  font-family: splendid;
+  vertical-align: middle;
+  text-align: center;
+  font-size: 1.8em;
+  width: 100%;
+  position: absolute;
+  transform: translateY(-50%);
+  left: 0%; 
+  top: 10%
 }
 
 .opinions2 {
-	font-family: splendid;
-	vertical-align: middle;
-	text-align: center;
-	font-size: 1.8em;
-	width: 100%;
-	position: absolute;
-	transform: translateY(-50%);
-	left: 0%; 
-	top: 17%
+  font-family: splendid;
+  vertical-align: middle;
+  text-align: center;
+  font-size: 1.8em;
+  width: 100%;
+  position: absolute;
+  transform: translateY(-50%);
+  left: 0%; 
+  top: 17%
 }
 
 .services {
-	font-family: splendid;
-	font-size: 1.3em;
-	width: 150%;
-	position: absolute;
-	transform: translateY(-50%);
-	left: 5%; 
-	top: 50%
+  font-family: splendid;
+  font-size: 1.3em;
+  width: 150%;
+  position: absolute;
+  transform: translateY(-50%);
+  left: 5%; 
+  top: 50%
 }
 
 .linksIntro {
-	font-family: splendid;
-	display: block;
-	font-size: 1.4em;
-	margin-top: 500px;
-	text-align: center;
+  font-family: splendid;
+  display: block;
+  font-size: 1.4em;
+  margin-top: 500px;
+  text-align: center;
+}
+
+.linksIntro a {
+  color: inherit;
 }
 
 .linkStackIntro {
-	top: 80%;
+  top: 80%;
 }
 
 .linksFin {
-	display: block;
-	text-align: center;
-	font-size: 0.7em;
+  display: block;
+  text-align: center;
+  font-size: 0.7em;
 }
 
 .linkStackFin {
-	margin-top: 170px;
+  margin-top: 170px;
 }

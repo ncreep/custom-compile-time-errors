@@ -31,7 +31,7 @@ Reach out for:
 - Talks
 ]
 
-.linksIntro.linkStackIntro[linksta.cc/@ncreep]
+.linksIntro.linkStackIntro[[linksta.cc/@ncreep](https://linksta.cc/@ncreep)]
 
 ---
 
@@ -50,13 +50,25 @@ type SchemaChecks =
       HasPrefix["tr"]
 ```
 
+???
+
+- If you have been programming Scala for a while
+- You probably encountered cases where people are trying to get too smart for their own good
+- In this case, expressing some complex schema validation rules as a type-level computation
+- We'll get to the details of the checks later on
+
 --
 
 - We thought implicits are the solution to every problem
 ```scala
 def performChecks[A, Checks](
-	  using ev: CheckSuccess[Checks, A])
+	  implicit ev: CheckSuccess[Checks, A])
 ```
+
+???
+- And whenever complex types are involved
+- Implicits are quick to follow
+- We would abuse implicits to do all the heavy type-level computations for us
 
 ---
 
@@ -64,6 +76,10 @@ def performChecks[A, Checks](
 ```scala
 performChecks[HotelTable, SchemaChecks]
 ```
+
+???
+- But when we actually try to apply these computations to a concrete case
+- We might fail
 
 --
 
@@ -76,12 +92,21 @@ performChecks[HotelTable, SchemaChecks]
 
 ???
 
-- TODO you were lucky if you hade an implicit trace you could debug
-- TODO mention implicitnotfound
+- In a completely opaque way
+- There's no indication here what actually went wrong
+- Which of the many rules that we checked failed?
+- What fields failed to pass the checks?
+- If you're lucky, maybe you'll get some implicit "stacktrace" to decipher
+- But if the computations you're performing here are sufficiently complex, good luck with that...
+- So you end up with this unhelpful error
 
 --
 
-- We can do better
+- We can do better!
+
+???
+- The aim of this talk is to show you that in Scala 3, we can do better
+- A lot better
 
 ---
 
@@ -90,19 +115,46 @@ layout: true
 ## Artisanally Crafted Errors
 ---
 
-- The `compiletime.error` function
+1. The `compiletime.error` function
+
+???
+
+- We are going to take a look the `compiletime.error` function
+- Which at first look might not seem particularly interesting
+- But it turns out that it can be very useful in solving the problem I just described
 
 --
-- Type-level programming in Scala 3
+1. Type-level programming in Scala 3
+
+???
+
+- When mixed with the new type-level programming features in Scala 3
+- Which we'll review quickly as we go along
 
 --
-- Developer-friendly custom errors
+3. Developer-friendly custom errors
+
+???
+
+- We end up with a tool that lets us create beautiful, custom, developer-friendly errors
 
 --
 
   - Guided by a realistic example
   - No macros
   - Not a tutorial
+
+???
+
+- As an example I will use a fairly realistic use-case
+- That will illustrate the power of the `error` function
+- Now it might be said that we can always solve these kinds of problems with macros
+- As we could in Scala 2 just as well
+- But my aim is to completely avoid macros, as they often tend to be one-off solutions that are not very reusable
+- On the other hand, the techniques I'm going to use in this talk are all standard language features
+- Each tool you will learn about can be used in other contexts as well
+- Also, this is not a tutorial, due to time constraints I'll have to skip over many details
+- You can see the full code in the repo that I will link to later on
 
 ---
 
@@ -114,6 +166,11 @@ It's just not really widely reported.
 
 .footnote[David St. Hubbins, This Is Spinal Tap]
 
+???
+- So the issue that we saw earlier is poor reporting
+- Our aim is to fix it
+- But first let's introduce the problem that we will be solving
+
 ---
 
 layout: true
@@ -124,6 +181,12 @@ layout: true
 - A class representing a database schema
 - The DBAs have very strict requirements
 
+???
+- Imagine that you're representing a database schema with a case class
+- It so happens that you can't just use any class as your schema
+- The DBAs have various requirements that you must observe
+- And they are very strict about it
+
 --
   - At most 25 fields
 	- Exactly one key field
@@ -131,9 +194,27 @@ layout: true
 	- Strings with at most 500 characters
 	- All fields have the prefix `tr`
 
+???
+- These are the requirements
+- No schema can have more than 25 fields
+- There can be exactly one key field per schema
+- And exactly one timestamp field
+- No idea why the timestamp is so important, but who am I to argue
+- We are not allowed to use strings above 500 characters
+- And lastly, for some mysterious reason all field names must start with the `tr` prefix
+- These requirements do seem a bit arbitrary, but who are we to argue with the DBAs
+- Now, it's been a long time since I interacted with actual DBAs face to face
+- But this is how I imagine them in real life
+
 ---
 
 .centered.dbas[![](dbas.jpg)]
+
+???
+- I really wouldn't want to mess with these guys
+- This gives me plenty of motivation to stick to the requirements
+- And better yet, do it at compile-time, no need to risk errors leaking into the runtime
+- To make the problem more concrete
 
 ---
 
@@ -156,6 +237,16 @@ case class HotelTable(
 )
 ```
 
+???
+- Here's an example class that we want to use as a schema
+- We are trying to represent data about hotels as a database table
+- We can see that we are already trying to apply some type-safety here
+- For example, we can see that the size of the strings is tracked as part of the type
+- We also have the special `Key` and `Timestamp` types here, that have to appear exactly once
+- But we can also see, that the DBA requirements are not something that is easy to express as regular types
+- For example, how do you enforce the size of the class or the `tr` prefix?
+- To implement the different requirements we'll have to resort to something more sophisticated than plain types
+
 ---
 
 layout: true
@@ -164,18 +255,37 @@ layout: true
 
 ---
 
+???
+- But first, let's introduce the star of this show, the `error` function
+
+--
+
 ```scala
 scala> import scala.compiletime.*
-     | error("this is my custom error")
+     | error("my custom error")
 {{content}}
 ```
 
+???
+
+- Here's the simplest possible usage of this function
+- Notice that we are importing from the `compiletime` package
+- And this is the custom compilation error that we want to produce
+- Run it
+
 --
 -- Error: -----------------------------
-2 |error("this is my custom error")
+2 |error("my custom error")
 |^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-|this is my custom error
+|my custom error
 1 error found
+
+???
+
+- And we get back our lovely error message as a **compilation** error
+- It's important to understand that this code was never executed
+- It failed to compile
+- Let's start implementing the requirements we have
 
 ---
 
@@ -192,12 +302,33 @@ inline def checkSize[A](maxSize: Int)(
 {{content}}
 ```
 
+???
+- The first requirement, to make sure the size of the class is not too large
+- Here's the signature we are going to implement
+- We take a type-parameter, that stands for the class we are about to check
+- We also take an integer specifying the maximum size
+- And we take an implicit argument `CaseClass` for our type
+- This value contains all the information we need about the case class, as it is known at **compile-time**
+- We'll see later on what sort of data it has
+- And here's the implementation
+
 --
   inline if caseClass.size > maxSize then
     error("Too many fields in class")
+
+???
+- Here we check the size of the case class vs. the maximum allowed size
+- If it's too large, we produce a compilation error informing us of the problem
+- Notice that we are using an `inline if`
+- That means that this code is going to be evaluated at compile-time
+- This also means that all the pieces that participate in the `inline if` must be known at compile-time
+- If that's not the case, for example if we use a variable and not a constant for the `maxSize` argument
+- The compiler will complain that it cannot reduce the `inline if`
+- Let's compile it
+
 --
 
-```scala
+```plaintext
 scala> checkSize[HotelTable](20)
 -- Error: ----------------------
 1 |checkSize[HotelTable](20)
@@ -205,6 +336,13 @@ scala> checkSize[HotelTable](20)
   |Too many fields in class
 1 error found
 ```
+
+???
+
+- As you can see, it failed to compile, since `HotelTable` has more than twenty fields
+- That fulfills our requirement but it's not as useful as it can be
+- Since we're striving for developer-friendly errors, it would be nice if the error told us how many fields the problematic class has, and what is the allowed maximum
+- Let's try again
 
 ---
 
@@ -218,9 +356,14 @@ inline def checkSize[A](maxSize: Int)(
         caseClass.size + " > " +  maxSize)
 ```
 
+???
+- Here's the same function, but this time I'm including more information about the actual and expected sizes
+- That will definitely be more developer-friendly
+- Let's compile that
+
 --
 
-```scala
+```plaintext
 scala> checkSize[HotelTable](20)
 -- Error: ----------------------
 1 |checkSize[HotelTable](20)
@@ -232,7 +375,17 @@ scala> checkSize[HotelTable](20)
 ```
 
 ???
-- TODO: mention why no string interpolation
+
+- It fails to compile
+- But for the wrong reason, it's not a problem with the class, but a problem with the call to `error`
+- We see here that `error` was expecting a literal string, but instead it got a more complicated expression
+- Including a conversion from `Int` to `String`
+- This of course makes sense
+- Since we are reporting the error at compile-time, the compiler should be able to evaluate the argument at compile-time as well
+- But since this is not a macro, it's very limited in the sorts of inputs it can evaluate
+- It's limited to evaluating only compile-time known strings
+- Actually the rules for `error` are a bit more complicated
+
 ---
 
 layout: true
@@ -241,12 +394,15 @@ layout: true
 
 ---
 
-- The error message is evaluated at compile-time
+- The error message is evaluated at compile-time:
+  - Compile-time constant strings
+  - Separated by `String.+`
 
---
-
-- Only compile-time constant strings
-- Separated by `String.+`
+???
+- So here are the more complete rules
+- Since the error message is evaluated at compile-time it accepts string constants
+- And string constants that are separated by `+`
+- For example
 
 --
 
@@ -259,6 +415,13 @@ layout: true
   error(s"another ${getError()} " + 123)
   ```
 
+???
+
+- The first example works, because the compiler can fully evaluate this expression at compile-time
+- But the second one doesn't, as the compiler can't invoke any of the necessary functions here
+- Like string interpolation
+- Or the `+` call, which is not the regular `String.+`, but rather requires first to convert the argument to a string, and only then concatenate it
+
 ---
 
 layout: true
@@ -267,12 +430,23 @@ layout: true
 
 ---
 
----
+???
+
+- This all seems very limiting
+- Where do we get compile-time constants? 
+- And how can we make this sufficiently **expressive** so that we can actually produce useful error messages?
+- So there are three main sources of string constants we can use
+
+--
 
 - Literals:
 ```scala
 "abc"
 ```
+
+???
+- Literals, like we saw before
+- But that's not enough to have really useful messages
 
 --
 
@@ -282,18 +456,39 @@ inline def message = "abc"
 ```
 
 ???
-- TODO: mention recursive inlines
+- We can also have `inline` literals
+- Since after inlining they are reduced to the same regular literals from before
+- Given the fact that the we can have recursive `inline` calls, this is quite powerful
+- And we could probably leverage `inline`s to produce better messages, but it might get cumbersome for various reasons I won't get into right now
+- Which leads us to the third option
 
 --
 
-- `constValue`:  
-```scala
+- `constValue`
+
+???
+- The `constValue` function
+- Which takes as an argument a singleton type, and produces a compile-time constant with a value that matches the type
+--
+  ```scala
   type Message1 = "abc"
   type Message2 = ToString[123]
 
-  constValue[Message1]
-  constValue[Message2]
-```
+  scala> constValue[Message1]
+         | constValue[Message2]
+  val res0: String = abc
+  val res1: String = 123
+  ```
+???
+
+- For example here, we have the singleton **type** `abc`
+- Which gets converted to the **value** `abc` using `constValue`
+- And here we have number as a singleton **type**, and we invoke a type-level function over it to get a string `type`, which is then converted to a string **value**
+- Which is exactly what we need for our size error
+- And since type-level programming in Scala 3 is very powerful, **this will also scale** to become a full solution to our error reporting problems
+- Let's see
+
+
 
 ---
 
@@ -309,10 +504,21 @@ inline def checkSize[A, MaxSize <: Int](
 
 {{content}}
 ```
+
+???
+- Here's the new signature we are going to implement
+- Instead of taking a literal **value** argument for the maximum-size, we take a **type** representing that value
+
 --
   inline if 
     constValue[caseClass.Size] > constValue[MaxSize] 
 {{content}}
+
+???
+- We again use the `inline if`, but this time we use `constValue` to check the condition
+- Here we have a literal **type** representing the size of the case class
+- Since `constValue` produces a compile-time constant, inlining can proceed as before
+
 --
   then
     error(
@@ -321,10 +527,14 @@ inline def checkSize[A, MaxSize <: Int](
         " > " +
         constValue[ToString[MaxSize]])
 
-
+???
+- And now we can construct our full message
+- We again use `constValue`, but first we convert the numbers to literal string **types**
+- Which we now can concatenate with `+`
+- If we compile it now
 --
 
-```scala
+```plaintext
 scala> checkSize[HotelTable, 20]
 -- Error: ----------------------
 1 |checkSize[HotelTable, 20]
@@ -333,6 +543,10 @@ scala> checkSize[HotelTable, 20]
 1 error found
 ```
 
+???
+- We get this lovely compilation error that tells us exactly what went wrong
+- This is a step in the right direction
+- Though it's a bit of a shame that we can't use string-interpolation, it makes the code a bit cumbersome
 ---
 
 layout: true
@@ -340,9 +554,16 @@ layout: true
 
 ---
 
-- The `error` function works well for simple stuff
-- But using only constants is limiting
-- Need to take it to the type-level for its full potential
+1. The `error` function works well for simple stuff
+1. But using only constants is limiting
+1. Need to take it to the type-level for its full potential
+
+???
+- So the `error` function is useful for simple, static errors
+- But as we just saw, it can be quite limiting to be using only compile-time constants
+- Unless, we take it to the type-level, that's where we can realize the `error` function's full potential
+- We saw a **hint** of it just now, with the type-level `ToString` call
+- Now we'll dive deeper into type-level computation
 
 ---
 
@@ -356,6 +577,9 @@ class: middle, transition
 > — Yeah, and clever.
 
 .footnote[David St. Hubbins, This Is Spinal Tap]
+
+???
+- So let's make a quick review of Scala's type-level capabilities
 ---
 
 layout: true
@@ -364,17 +588,34 @@ layout: true
 
 ---
 
+???
+- Scala has many type-level features
+
+--
+
 - Match types
 
+--
 - Recursive types
 
+--
 - Singleton types
 
+--
 - Arbitrary-sized tuples
 
+--
 - Type lambdas
 
+--
 - ...
+
+???
+- And many more
+- It can be easy to get lost with such a wealth of features
+- What's important for our purposes, is that by leveraging this rich type-level machinery we can form a small "type-level language"  
+- And that's what we are going to use to produce our error messages
+- Let's see a small example to gain some intuition about this "language"
 
 ---
 
@@ -384,6 +625,11 @@ def nums = 1 :: 2 :: 3 :: 4 :: Nil
 {{content}}
 ```
 
+???
+- I'm going to start with a **value**-level snippet of code
+- And then we'll translate it to the **type**-level
+- Suppose you have a list
+
 --
 def map[A, B](ls: List[A], f: A => B): List[B] =
   ls match
@@ -392,6 +638,9 @@ def map[A, B](ls: List[A], f: A => B): List[B] =
 
 {{content}}
 
+???
+- You can (naively) define the `map` function on it by using pattern-matching and recursion
+
 --
 def mapped = nums.map(i => i + 10)
 
@@ -399,9 +648,20 @@ def filtered = mapped.filter(i => i < 14)
 
 {{content}}
 
+???
+- And we can do some transformations over the list
+- By using anonymous functions
+
 --
 def result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
+
+???
+
+- And finally, we can aggregate a result using `fold` and a function that converts numbers to a string
+- What we have here is a small snippet of functional code
+- Nothing too complicated for Scala at the **value**-level
+- Now, let's translate this to the **type**-level
 
 ---
 
@@ -420,6 +680,11 @@ type Filtered = mapped.filter(i => i < 14)
 type Result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
 ```
+
+???
+- First of all, the equivalent of a `def` is a `type` declaration
+- And by convention, we name types with a capital letter
+
 ---
 
 ```scala
@@ -437,6 +702,36 @@ type Filtered = mapped.filter(i => i < 14)
 type Result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
 ```
+
+???
+- Next, the type-level equivalent of a list is a tuple
+- Notice, that these are singleton **types** here and not values any more
+- Here we built a tuple with four elements
+
+---
+
+```scala
+type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
+
+type Map[T <: Tuple, F[_]] <: Tuple =
+  ls match
+    case Nil => Nil
+    case h :: t => f(h) :: map(t, f)
+
+type Mapped = nums.map(i => i + 10)
+
+type Filtered = mapped.filter(i => i < 14)
+
+type Result = 
+  fold(filtered, "", (i, acc) => toString(i) ++ acc)
+```
+
+???
+- The arguments to our function now become type arguments
+- Instead of a list, we take a tuple argument
+- And instead of a function we take a type-constructor
+- Which can be thought as function from a type to a type
+
 ---
 
 ```scala
@@ -454,23 +749,11 @@ type Filtered = mapped.filter(i => i < 14)
 type Result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
 ```
----
 
-```scala
-type Nums = 1 *: 2 *: 3 *: 4 *: EmptyTuple
-
-type Map[T <: Tuple, F[_]] <: Tuple =
-  T match
-    case EmptyTuple => EmptyTuple
-    case h *: t => F[h] *: Map[t, F]
-
-type Mapped = Nums Map ([I] =>> I + 10)
-
-type Filtered = mapped.filter(i => i < 14)
-
-type Result = 
-  fold(filtered, "", (i, acc) => toString(i) ++ acc)
-```
+???
+- Pattern matching becomes a match type
+- We match on the type's structure
+- Since match types support recursion, the type-level code looks almost the same as the value-level code we started with
 
 ---
 
@@ -489,6 +772,15 @@ type Filtered = Mapped Filter ([I] =>> I < 14)
 type Result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
 ```
+
+???
+- Next we want to use our "higher-order-type-functions" and transform the `Nums` **type**
+- This special arrow here defines a type-lambda, which is the equivalent of an anonymous function at the type-level
+- We also take advantage of some built-in type function like `+` and `<`
+- Which let us operate on singleton types as if they are values
+- Also notice the infix syntax we use for `Map` and `Filter`
+- It looks almost like invoking a method on a collection value
+- Lastly
 
 ---
 
@@ -508,6 +800,17 @@ type Result =
   Fold[Filtered, "", ([I, Acc] =>> ToString[I] ++ Acc)]
 ```
 
+???
+- The call to `fold` looks almost exactly the same as before
+- But now we have a type-lambda with two arguments
+- And we use type-level string conversion and concatenation
+- And that's it, we took our simple value-level code and turned it into a type-level equivalent
+- And the result looks fairly readable, like a simple functional language
+- In the past I would have to show you a bit of Prolog to achieve this result
+- Which is fun, but can feel a bit alien
+- But simple functional features is something that Scala developers are fairly familiar with
+- We can also "run" this
+
 --
 
 ```scala
@@ -516,22 +819,36 @@ val res0: String = 111213
 ```
 
 ???
-- TODO: mention how in the past it was Prolog
-- TODO: this is a result we can use as an input to the `error` function
+- Here we feed the `Result` **type**, that the compiler evaluated for us, to the `constValue` function and turn it into a compile-time constant **value**
+- And since this is a constant, this value can be used as an argument to the `error` function
+- This will be our way of doing sophisticated logic while generating error messages
 
 ---
 
-- A simple functional language
+1. A simple functional language
+  - Lists
+  - Pattern matching
+  - Recursion
+  - Anonymous functions
 
-- Tends to be loosely-typed
+???
+- So this is our type-level language
+- We have tuples instead of lists, pattern-matching, recursion, and anonymous functions
+- All the ingredients we need for a simple functional language
+--
+1. Tends to be loosely-typed
 
-- Quirky but serviceable 
+1. Quirky but serviceable 
 
 
 ???
-- TODO loosely typed
-- TODO like many things in the Scala language, it's quirky but serviceable (about the type-level "language")
-- TODO a bit like Scala in the old days + no string interpolation
+- In practice it does tend to be a bit "loosely typed" at the type-level
+- We'll be using plenty of "raw" tuples without constraining their contents
+- So one might say that Scala at the type-level is a **dynamic language**
+- Like many things in the Scala language, the resulting type-level language is quirky but serviceable
+- It's a shame that this language doesn't support string-interpolation
+- Just like Scala itself **back in the day**
+- We really do need **[SIP-11](https://docs.scala-lang.org/sips/string-interpolation.html)** at the type-level...
 
 ---
 
@@ -546,6 +863,12 @@ class: middle, transition
 
 .footnote[Nigel Tufnel, This Is Spinal Tap]
 
+???
+- Now that we have all the groundwork laid out
+- We are finally ready to implement all our requirements in their full glory
+- We are going to pair up type-level computation with the `error` function
+- And really take it **up to eleven**
+
 ---
 
 layout: true
@@ -554,6 +877,13 @@ layout: true
 
 ---
 
+???
+- Before we can produce any error messages
+- Let's take a look at what our inputs are going to be
+- Before we saw the `CaseClass` type
+- Now we can see what it's made of
+
+--
 
 ```scala
 scala> summon[CaseClass[HotelTable]]
@@ -571,7 +901,12 @@ val res1:
 ```
 
 ???
-- TODO: mention `Mirror`
+- This is the `CaseClass` value for `HotelTable`
+- As you can see it contains all the information about the fields of the class as literal **types**
+- And we also have the name of the class as a literal type as well
+- If you're familiar with the `Mirror` type, this is basically the same thing, slightly restructured to make it more convenient to use for this use-case
+- Since this is just a tuple with field descriptors we can apply our type-level language to it
+- So producing errors will boil down to tuple processing at compile-time
 
 ---
 
@@ -581,6 +916,11 @@ layout: true
 
 ---
 
+???
+- Now we are ready create a little "framework" for compile-time errors
+- With this "framework", we'll be able to implement all the checks that we need and to produce nice errors in return
+- The first ingredient
+
 ---
 
 ```scala
@@ -589,11 +929,25 @@ trait Check[C[_ <: Tuple]]
 {{content}}
 ```
 
+???
+- Is the `Check` type
+- That's just a wrapper around a type-constructor
+- Basically a "function" that takes a tuple with all the fields of the class and produces some result
+- Note that this is "loosely-typed", we don't enforce much about inputs and outputs of our type-level "function"
+- Although it's possible in principle to make this more "typed", it might get cumbersome quickly
+
 --
 type Error[Message <: String] = Message *: EmptyTuple
 type Okay = EmptyTuple
 
 {{content}}
+
+???
+- Next we have a couple of helpers
+- Producing a single error message, which takes a string literal type and produces a singleton tuple
+- And a "no errors" type, which is just an empty tuple
+- We are using tuples of error messages, so that we can aggregate multiple errors in one go
+- Our `Check` functions above are going to be producing either `Error` or `Okay` depending on circumstances
 
 --
 type OrFailWith[
@@ -603,10 +957,22 @@ type OrFailWith[
   IfThenElse[Cond, Okay, Error[ErrorMessage]]
 
 {{content}}
+
+???
+- To make error checking more fluent, we add a small helper "function"
+- It evaluates a boolean condition, if it holds it returns `Okay`, if it fails it produces an error message
+- We're aiming at a small type-level DSL (domain-specific language) here
 --
-type ApplyCheck[Fields] = [C] =>>
+type ApplyCheck[Fields <: Tuple] = [C] =>>
   C match
     case Check[check] => check[Fields]
+
+???
+- Lastly, we provide a way to apply a check to the fields of a class
+- So given some fields
+- And a `Check`
+- We deconstruct the `Check` type, extract the type "function" from it
+- And apply it to the fields
 
 --
 
@@ -614,10 +980,13 @@ type ApplyCheck[Fields] = [C] =>>
 ```scala
 Validation[NonEmptyList[String], Unit]
 ```
-
+  
 ???
-- TODO: Mention error accumulation
-- TODO: mention loosely typed (no one enforcing the kinds of tuples we are working with)
+- You can think of this "framework" as an approximate type-level equivalent of `Validation` with a non-empty-list of errors and a `Unit` return value
+- Just like `Validation` we are going to **accumulate errors** as we go along
+- To provide that extra bit of usability to our fellow developers
+- With this framework in place, let's try to reimplement the size check
+- This time at the type-level
 
 ---
 
@@ -633,10 +1002,24 @@ type HasAtMostFields[MaxSize <: Int] = Check[
 {{content}}]
 ```
 
+???
+- Here's the "signature" we are implementing
+- We take a `MaxSize` type as an argument
+- And create a `Check` with a `Fields` argument here
+
 --
   (Size[Fields] <= MaxSize) OrFailWith 
     "Too many fields in class: " ++ 
     ToString[Size[Fields]] ++ " > " ++ ToString[MaxSize]
+???
+- Here's the actual check
+- Since `Fields` is a tuple, we can compute its size
+- We then compare it to the `MaxSize` argument, using the builtin type comparison operator
+- If the size of the input is too big, we produce an error message
+- Notice how we are embedding all the relevant size info into the message
+- It's a shame that we don't have string interpolation though...
+- But I do find the code quite readable
+- We can even "run" this check to see that it work correctly
 --
 
 ```scala
@@ -652,15 +1035,30 @@ scala> val cc = summon[CaseClass[HotelTable]]
 // defined alias type Result2 = 
   "Too many fields in class: 22 > 20" *: EmptyTuple
 ```
+
+???
+- Here we summon the `CaseClass` instance for `HotelTable`
+- We then apply the check to its `Fields` type
+- Once with a large `MaxSize` and once with a small one
+- The compiler then helpfully computes the resulting **type**
+- In the first case we succeeded, so we have an empty-tuple
+- Meaning no errors
+- And in the second case we failed
+- The result is a singleton tuple with a very helpful error message
 ---
 
 layout: true
 
-## Exactly One
+## Exactly Once
 
 ---
 
----
+???
+- That wasn't that bad, wasn't it?
+- Now we can quickly implement the other checks
+- The next check is to make sure that a certain type appears exactly once in the class
+
+--
 
 ```scala
 type ExactlyOneOf[Type, TypeName <: String] = Check[
@@ -670,17 +1068,31 @@ type ExactlyOneOf[Type, TypeName <: String] = Check[
 ```
 
 ???
-- TODO: no way of converting a type to a string name
+- This is again the "signature" that we are implementing
+- We take a type and the type's name as a string
+- Unfortunately, there isn't a builtin type-level way to convert arbitrary types to their string name
+- So we are forced to pass it in manually
+- Given the `Fields` argument we can implement the check as follows
+
 --
   CollectFieldsOfType[Type, Fields] match
     case EmptyTuple => 
       Error["No [" ++ TypeName ++ "] field in class"]
 
 {{content}}
+???
+- We use the "function" `CollectFieldsOfType` to find all the fields that have the relevant type
+- I'll show the definition of `CollectFieldsOfType` in a moment
+- We then match on the result
+- If it's empty, we produce an error, since the field is required to appear exactly once
 --
     case h *: EmptyTuple => Okay
 
 {{content}}
+???
+- Next is the case when we have exactly one field with the desired type
+- We return `Okay`
+- And the last case
 --
     case h *: t => Error[
       "Expected exactly one [" ++ TypeName ++ "] " ++
@@ -689,21 +1101,36 @@ type ExactlyOneOf[Type, TypeName <: String] = Check[
       "[" ++ RenderFieldList[h *: t] ++ "]"
     ]
 ???
-- TODO: mention SIP-11 https://docs.scala-lang.org/sips/string-interpolation.html
+- We have more than one field of the type
+- We then produce an error containing all the relevant information
+- Both how many times the field appeared in the class
+- And we use `RenderFieldList` to show the offending fields
+- We'll see its definition in a moment
+- String interpolation could really help here...
+- Anyone up for writing a **compiler plugin**?
+- Despite the weird syntax, I think the **intent of this code** is still quite visible
+- And here are the helper "functions"
 ---
 
 ```scala
 type CollectFieldsOfType[Type, Fields <: Tuple] =
- Fields Filter 
-  ([Field] =>> GetFieldType[Field] Subtype Type)
+  Fields Filter 
+    ([Field] =>> GetFieldType[Field] Subtype Type)
 ```
+
+???
+- Collecting fields of the right type is just a call to `Filter`
+- We extract the type from the `Field` descriptor and test it
 
 --
 ```scala
 type RenderFieldList[Fields <: Tuple] =
   MkString[Fields Map GetFieldName]
 ```
-
+???
+- Rendering the fields fetches the field names
+- Then runs `MkString` on them, which is the type-level equivalent of `mkString` on collections
+- And here's how we can check for the specific types we are interested in
 --
 
 ```scala
@@ -716,6 +1143,10 @@ type ExactlyOneTimestamp =
   ExactlyOneOf[Timestamp, "Timestamp"]
 ```
 
+???
+- We just apply `ExactlyOneOf` to the required type
+- And also pass in its name
+- Three checks down, two more to go
 ---
 
 layout: true
@@ -723,7 +1154,12 @@ layout: true
 
 ---
 
----
+???
+- The other checks that we have left are per-field checks
+- Meaning that we need to check each field separately
+- To make this easier, let's define another helper in our "framework"
+
+--
 
 ```scala
 type CheckAllFields[C[_]] =
@@ -733,12 +1169,23 @@ type CheckAllFields[C[_]] =
   ]
 ```
 
+???
+- This defines a new check
+- Which takes a per-field check as an argument
+- Given the `Fields` we apply the check to each field with `ApplyToField`
+- And the `FlatMap` call aggregates the result from all the fields into a single list of errors
+- `ApplyToField` is defined as
+
 --
 
 ```scala
-type ApplyToField[Check[_]] = 
-  [Field] =>> Check[Field] Map RenderFieldError[Field]
+type ApplyToField[C[_]] = 
+  [Field] =>> C[Field] Map RenderFieldError[Field]
 ```
+???
+- For a given field, apply the check to the field
+- This results in a tuple of errors
+- We then use `RenderFieldError` on each error
 
 --
 
@@ -747,6 +1194,11 @@ type RenderFieldError[Field] = [Error] =>>
   "[" ++ GetFieldName[Field] ++ "]: " ++ Error
 ```
 
+???
+- `RenderFieldError` takes the original error and adds data about the name of the field that produced that error
+- We are really going for the usability points here
+- Now for the last two checks
+
 ---
 
 layout: true
@@ -754,7 +1206,11 @@ layout: true
 
 ---
 
----
+???
+- We are required that all the string fields don't exceed a certain maximum size
+- First the "signature"
+
+--
 
 ```scala
 type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields[
@@ -762,26 +1218,45 @@ type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields[
 
 {{content}}]
 ```
+???
+- This is quite similar to the class size check
+- We take a `MaxSize` parameter
+- But now we define a `CheckAllFields` check
+- Which will be applied to each field independently
+
 --
   GetFieldType[Field] match
  
     case SizedString[n] =>
       (n <= MaxSize) OrFailWith
-        "string too large: " ++
+        "string is too large: " ++
         ToString[n] ++ " > " ++ ToString[MaxSize]
 
 {{content}}
+???
+- We proceed by extracting the field type and matching on it
+- If it's a `SizedString` we extract its size and then compare it to `MaxSize`
+- Erroring out in case it's too large
 --
     case String =>
       Error["unbounded strings are not allowed"]
 
     case _ => Okay
+???
+- If the type is a raw `String` we fail, as we want to forbid unbounded strings
+- In any other case, we're okay
+- That's it, one last check to implement
 ---
 
 layout: true
 ## Bogus Prefixes
 
 ---
+
+???
+- The last check requires us to make sure that each field has a certain prefix
+- Who knows what **weird legacy reason** forces us to do this, but you can't argue with DBAs...
+--
 
 ```scala
 type HasPrefix[Prefix <: String] = CheckAllFields[
@@ -794,10 +1269,22 @@ type HasPrefix[Prefix <: String] = CheckAllFields[
 ```
 
 ???
-- TODO: mention weird legacy reasons for prefix
-- TODO: `Matches` is builtin and it would be very difficult to define it on your own, more functions would be welcome
----
+- Here's the check
+- We take in a `Prefix` string
+- And use the builtin `Matches` type function
+- It applies a regex to a string and produces a boolean result
+- We match the field name, with the `Prefix` combined into a regex expression
+- If the match fails we provide an informative error message
+- Note that `Matches` is a builtin function in the Scala compiler
+- If it wasn't implemented for us, it would be very difficult to implement on our own
+- Generally speaking, we are somewhat **limited in power** by whatever builtin functions are defined in the compiler
+- For example, we can't implement the conversion from a type to a string on our own
+- If the compiler doesn't provide it, we're stuck
+- It would be nice to have some extensible mechanism to add more type-level functions like this
+- That's it!
+- We're done, all checks implemented
 
+---
 
 layout: true
 
@@ -810,23 +1297,38 @@ type SchemaOkay =
 {{content}} 
   EmptyTuple
 ```
+
+???
+- Let's combine them into a single definition
+- We'll do it by chaining all the checks into a tuple
+- To be applied later on
 --
   
   HasAtMostFields[25] *:
 {{content}}
+???
+- The class can have at most 25 fields
 --
   
   ExactlyOneOf[Key, "Key"] *:
   ExactlyOneOf[Timestamp, "Timestamp"] *:
 {{content}}
+???
+- We require exactly one `Key` and `Timestamp` fields
 --
   
   StringFieldsAtMost[500] *:
 {{content}}
+???
+- We forbid strings beyond 500 characters
 --
   
   HasPrefix["tr"] *:
 
+???
+- And enforce the `tr` prefix for all fields
+- This one tuple captures all the requirements that we got from out DBAs
+- Now it's time to actually "run" them
 ---
 
 layout: true
@@ -835,14 +1337,47 @@ layout: true
 
 ---
 
----
+???
+- For the last bit of "framework"
+- We are going to create a "runner" that will take in a tuple of checks
+- And either fail if any of them failed, or compile successfully
+
+--
 
 ```scala
 type CheckAll[Fields <: Tuple, Checks <: Tuple] =
   Checks FlatMap ApplyCheck[Fields]
 ```
 
+???
+- Here's a "function" that takes a tuple with all the fields
+- And a tuple with all the checks
+- Then it runs `ApplyCheck` with each check, passing in the `Fields`
+- We accumulate all the produced errors into a single tuple using `FlatMap`
+- We will also need to turn the resulting errors into a single string that we can feed back into the `error` function
+
 --
+
+```scala
+type RenderErrors[Errors <: Tuple, TypeName <: String] =
+  "Some checks failed for [" ++ TypeName ++ "]:\n" ++
+    MakeLines[Itemize[Errors]]
+```
+ 
+```scala
+type Itemize[Errors <: Tuple] =
+  Errors Map ([Err] =>> "- " ++ Err)
+```
+
+???
+- So given a list of errors and the name of the type that produced these errors
+- We provide a helpful message about the failures specifying the type that failed
+- Then combine all the errors into a single string with `MakeLines`
+- Which just concatenates everything with a newline character in-between
+- `Itemize` gives us a nice **flourish** of adding a dash before each error
+- Finally, we're ready to come back to the `error` function
+
+---
 ```scala
 inline def performChecks[Checks <: Tuple, A](
   using caseClass: CaseClass[A]): Unit =
@@ -851,32 +1386,47 @@ inline def performChecks[Checks <: Tuple, A](
 ```
 
 ???
-- TODO: tying the value-level to the type-level
+- Finally, we're back to the value level with an actual `def`
+- This is the place where we tie the **value**-level `error` function to the **type**-level computations we just defined
+- So we take a tuple of checks
+- A type we want to check
+- And we require a given `CaseClass` instance for it
+
 --
   type Errors = CheckAll[caseClass.Fields, Checks]
 
 {{content}}
+???
+- We then apply all the checks to the `Fields` of the case class
+- Notice that we are mixing a **value** `caseClass` with a **type** computation here
+- We now have a possibly empty tuple of `Errors` as a result
+- If it's empty we're done
+- If it's non-empty we want to fail compilation with `error`
+- But how do we match on a type when we are at the **value**-level here?
 --
   inline erasedValue[Errors] match
 {{content}}
+???
+- For this exact purpose Scala provides us with the `erasedValue` function
+- It takes a **type** and returns a dummy **value** of that type
+- Which we can then match on
+- Though we are not allowed to use the value itself, as it's just a dummy
 --
     case _: EmptyTuple => ()
 
 {{content}}
+???
+- If the there were no errors we're done
 --
     case _: (h *: t) => error(
       constValue[RenderErrors[h *: t, caseClass.Name]])
----
-
-```scala
-type RenderErrors[Errors <: Tuple, TypeName <: String] =
-  "Some checks failed for [" ++ TypeName ++ "]:\n" ++
-    MakeLines[Itemize[Errors]]
-
-type Itemize[Errors <: Tuple] =
-  Errors Map ([Err] =>> "- " ++ Err)
-```
-
+???
+- If the tuple of errors was non-empty
+- We call `RenderErrors` on that tuple, which produces a single string **type** with all the errors combined
+- We invoke `constValue` on it, turning it into a **value**
+- Which we can now happily pass into the `error` function
+- So that it aborts compilation with our custom message
+- Done!
 ---
 
 layout: true
@@ -885,21 +1435,38 @@ layout: true
 
 ---
 
----
+???
+- But does it actually work?
+
+--
 
 ```scala
 scala> performChecks[SchemaOkay, HotelTable]
-
-scala>
+{{content}}
 ```
 
+???
+- We run `performChecks` on `HotelTable`
+
+--
+
+scala>
+???
+- ... and nothing happened...
+- That's okay though, `HotelTable` is a valid schema
+- So it compiles fine, as expected
+- But here's another case
 ---
 
-```scala
+```plaintext
 scala> performChecks[SchemaOkay, BadHotelTable]
 
 {{content}}
 ```
+???
+- We now run `performChecks` on the **suspiciously** named `BadHotelTable`
+- Do you feel the tension?
+- Is this going to work?..
 --
 -- Error: ---------------------------------
 1 |performChecks[SchemaOkay, BadHotelTable]
@@ -909,17 +1476,26 @@ scala> performChecks[SchemaOkay, BadHotelTable]
   |- No [Key] field in class
   |- Expected exactly one [Timestamp] field in class,
   |  but got 2: [trLastUpdate, trCreationDate]
-  |- [trAmenities]: string too large: 1200 > 500
-  |- [cancellationPolicy]: string too large: 700 > 500
+  |- [trAmenities]: unbounded strings are not allowed
+  |- [cancellationPolicy]: string is too large: 700 > 500
   |- [roomTypes]: field is missing prefix [tr]
   |- [description]: field is missing prefix [tr]
   |- [cancellationPolicy]: field is missing prefix [tr]
 1 error found
 
+???
+- Look at this beautiful compilation error!
+- So much useful information and context
+- We can easily see why it fails
+- Which fields are invalid and why
+- All errors chained into one lovely and informative error message
+- Even the DBAs are happy now
 ---
 
 .centered.happyDbas[![](happy-dbas.webp)]
 
+???
+- And if they are happy, we are truly done
 ---
 
 layout: true
@@ -927,27 +1503,43 @@ layout: true
 
 ---
 
-- The `error` function is quite powerful
-
---
-- By harnessing the type-level "functional language"
-
---
-- Craft beautiful, developer-friendly, compile-time errors
-
---
-  - ~100 LOC
-  - Fairly readable code
-
---
-- Exciting uncharted territory
-
+1. The `error` function is quite powerful
 
 ???
-- TODO comment about implementing everything with implicits
-- TODO enforcing complex invariants where they belong, at compile-time
-- TODO you can start simple
-- TODO was surprised myself by how well it worked out
+- So we saw that despite its humble name, the `error` function is quite powerful
+- You can start simple, with fixed strings
+- But you can also go all the way **up to eleven**
+--
+1. By harnessing the type-level "functional language"
+
+???
+- By harnessing the functional language at the type-level
+- Making compile-time capabilities almost endless
+--
+  - ~100 LOC, fairly readable code
+???
+- And with just about 100 lines of fairly readable and reusable code we managed to produce a compilation error that people could only dream of in the old days
+- I was actually **surprised myself** by how readable that code turned out to be
+--
+
+1. We can craft custom compile-time errors
+  - Beautiful and developer-friendly
+  - Enforcing complex invariants
+
+???
+- Custom compile-time errors is now something that any developer can craft
+- And what's better than delighting your fellow developers with beautiful and developer-friendly errors?
+- All the while enforcing **complex invariants where they belong**, at compile-time
+
+
+--
+1. Exciting uncharted territory
+
+???
+- This is some exciting uncharted territory
+- Like any new area there are some rough edges and nuances
+- But overall, it seems to be working quite well
+- I hope this talk inspires you to take a look at Scala's type-level capabilities and the `error` function
 
 ---
 
@@ -960,10 +1552,10 @@ class: transition
   
 .endQuote.footnote[David St. Hubbins, This Is Spinal Tap]
 
-.centered.linksFin.linkStackFin[https://linksta.cc/@ncreep]
+.centered.linksFin.linkStackFin[[linksta.cc/@ncreep](https://linksta.cc/@ncreep)]
 
 .githubLink.centered[
-https://github.com/ncreep/custom-compile-time-errors
+[github.com/ncreep/custom-compile-time-errors](https://github.com/ncreep/custom-compile-time-errors)
 ]
 
 ???

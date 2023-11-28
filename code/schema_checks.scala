@@ -56,7 +56,7 @@ type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields [
    GetFieldType[Field] match
      case SizedString[n] =>
        (n <= MaxSize) OrFailWith
-         "string too large: " ++ ToString[n] ++ " > " ++ ToString[MaxSize]
+         "string is too large: " ++ ToString[n] ++ " > " ++ ToString[MaxSize]
      case String =>
        Error["unbounded strings are not allowed"]
      case _ => Okay

@@ -48,7 +48,7 @@ case class BadHotelTable(
     trSecondaryPhoneNumber: SizedString[15],
     trHotelWebsite: SizedString[200],
     trHotelRating: Rating[5],
-    trAmenities: SizedString[1200],
+    trAmenities: String,
     trNumberOfRooms: Natural,
     trNumberOfAvailableRooms: Natural,
     trNumberOfBusinessCenters: Natural,

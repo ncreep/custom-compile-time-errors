@@ -17,11 +17,11 @@ type OrFailWith[Cond <: Boolean, ErrorMessage <: String] =
 type CheckAllFields[C[_]] =
   Check[[Fields <: Tuple] =>> Fields FlatMap ApplyToField[C]]
 
-type ApplyToField[Check[_]] = [Field] =>> Check[Field] Map RenderFieldError[Field]
+type ApplyToField[C[_]] = [Field] =>> C[Field] Map RenderFieldError[Field]
 
 type RenderFieldError[Field] = [Error] =>> "[" ++ GetFieldName[Field] ++ "]: " ++ Error
 
-type ApplyCheck[Fields] = [C] =>> 
+type ApplyCheck[Fields <: Tuple] = [C] =>> 
   C match
     case Check[check] => check[Fields]
 
