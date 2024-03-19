@@ -46,4 +46,4 @@ type TupleToField[T] = T match
   case (name, typ) => Field[name, typ]
 
 type MakeCaseClass[Names <: Tuple, Types <: Tuple] =
-  Zip[Names, Types] Map TupleToField
+  Zip[Names, Types] `Map` TupleToField

@@ -34,9 +34,9 @@ object TypeLevel:
       case EmptyTuple => EmptyTuple
       case h *: t => F[h] *: Map[t, F]
 
-  type Mapped = Nums Map ([I] =>> I + 10)
+  type Mapped = Nums `Map` ([I] =>> I + 10)
 
-  type Filtered = Mapped Filter ([I] =>> I < 14)
+  type Filtered = Mapped `Filter` ([I] =>> I < 14)
 
   type Result = Fold[Filtered, "", ([I, Acc] =>> ToString[I] ++ Acc)]
 

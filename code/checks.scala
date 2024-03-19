@@ -15,9 +15,9 @@ type OrFailWith[Cond <: Boolean, ErrorMessage <: String] =
   IfThenElse[Cond, Okay, Error[ErrorMessage]]
 
 type CheckAllFields[C[_]] =
-  Check[[Fields <: Tuple] =>> Fields FlatMap ApplyToField[C]]
+  Check[[Fields <: Tuple] =>> Fields `FlatMap` ApplyToField[C]]
 
-type ApplyToField[C[_]] = [Field] =>> C[Field] Map RenderFieldError[Field]
+type ApplyToField[C[_]] = [Field] =>> C[Field] `Map` RenderFieldError[Field]
 
 type RenderFieldError[Field] = [Error] =>> "[" ++ GetFieldName[Field] ++ "]: " ++ Error
 
@@ -26,7 +26,7 @@ type ApplyCheck[Fields <: Tuple] = [C] =>>
     case Check[check] => check[Fields]
 
 type CheckAll[Fields <: Tuple, Checks <: Tuple] =
-  Checks FlatMap ApplyCheck[Fields]
+  Checks `FlatMap` ApplyCheck[Fields]
 
 inline def performChecks[Checks <: Tuple, A](using caseClass: CaseClass[A]): Unit =
   type Errors = CheckAll[caseClass.Fields, Checks]
@@ -40,4 +40,4 @@ type RenderErrors[Errors <: Tuple, TypeName <: String] =
     MakeLines[Itemize[Errors]]
 
 type Itemize[Errors <: Tuple] =
-  Errors Map ([Err] =>> "- " ++ Err)
+  Errors `Map` ([Err] =>> "- " ++ Err)

@@ -8,7 +8,7 @@ import scala.compiletime.ops.string.Matches
 // format: off
 
 type SchemaOkay =
-  HasAtMostFields2[25] *:
+  HasAtMostFields[25] *:
   ExactlyOneOf[Key, "Key"] *:
   ExactlyOneOf[Timestamp, "Timestamp"] *:
   StringFieldsAtMost[500] *:
@@ -19,19 +19,21 @@ type HasAtMostFields[MaxSize <: Int] = Check[
   [Fields <: Tuple] =>> 
     // no way to name intermediate results without matching
     // so we have to repeat the call to `Size` twice (or we can do a match instead)
-    (Size[Fields] <= MaxSize) OrFailWith 
+    (Size[Fields] <= MaxSize) `OrFailWith` 
       "Too many fields in class: " ++ ToString[Size[Fields]] ++ " > " ++ ToString[MaxSize]
 ]
 
+/* this trick doesn't work on Scala 3.4 */
+
 // same as `HasAtMostFields` but without calling `Size` twice, instead matching on the
 // result of `Size` to assign it to a value
-type HasAtMostFields2[MaxSize <: Int] = Check[
-  [Fields <: Tuple] =>> 
-    Size[Fields] match
-      case Is[size] =>
-        (size <= MaxSize) OrFailWith 
-          "Too many fields in class: " ++ ToString[size] ++ " > " ++ ToString[MaxSize]
-]
+// type HasAtMostFields2[MaxSize <: Int] = Check[
+//   [Fields <: Tuple] =>> 
+//     Size[Fields] match
+//       case Is[size] =>
+//         (size <= MaxSize) OrFailWith 
+//           "Too many fields in class: " ++ ToString[size] ++ " > " ++ ToString[MaxSize]
+// ]
 
 type ExactlyOneOf[Type, TypeName <: String] = Check[
   [Fields <: Tuple] =>> 
@@ -46,16 +48,16 @@ type ExactlyOneOf[Type, TypeName <: String] = Check[
 ]
 
 type CollectFieldsOfType[Type, Fields <: Tuple] =
- Fields Filter ([Field] =>> GetFieldType[Field] Subtype Type)
+ Fields `Filter` ([Field] =>> GetFieldType[Field] `Subtype` Type)
 
 type RenderFieldList[Fields <: Tuple] =
- MkString[Fields Map GetFieldName]
+ MkString[Fields `Map` GetFieldName]
 
 type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields [
  [Field] =>> 
    GetFieldType[Field] match
      case SizedString[n] =>
-       (n <= MaxSize) OrFailWith
+       (n <= MaxSize) `OrFailWith`
          "string is too large: " ++ ToString[n] ++ " > " ++ ToString[MaxSize]
      case String =>
        Error["unbounded strings are not allowed"]
@@ -64,7 +66,7 @@ type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields [
 
 type HasPrefix[Prefix <: String] = CheckAllFields[
   [Field] =>> 
-    Matches[GetFieldName[Field], Prefix ++ ".*"] OrFailWith
+    Matches[GetFieldName[Field], Prefix ++ ".*"] `OrFailWith`
       "field is missing prefix [" ++ Prefix ++ "]"
 ]
 

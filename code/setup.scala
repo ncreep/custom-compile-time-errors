@@ -1,3 +1,3 @@
-//> using scala "3.3.1"
+//> using scala "3.4.0"
 //> using options -Xfatal-warnings
-//> using dep "io.github.iltotore::iron:2.3.0"
+//> using dep "io.github.iltotore::iron:2.5.0"

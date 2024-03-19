@@ -765,9 +765,9 @@ type Map[T <: Tuple, F[_]] <: Tuple =
     case EmptyTuple => EmptyTuple
     case h *: t => F[h] *: Map[t, F]
 
-type Mapped = Nums Map ([I] =>> I + 10)
+type Mapped = Nums `Map` ([I] =>> I + 10)
 
-type Filtered = Mapped Filter ([I] =>> I < 14)
+type Filtered = Mapped `Filter` ([I] =>> I < 14)
 
 type Result = 
   fold(filtered, "", (i, acc) => toString(i) ++ acc)
@@ -792,9 +792,9 @@ type Map[T <: Tuple, F[_]] <: Tuple =
     case EmptyTuple => EmptyTuple
     case h *: t => F[h] *: Map[t, F]
 
-type Mapped = Nums Map ([I] =>> I + 10)
+type Mapped = Nums `Map` ([I] =>> I + 10)
 
-type Filtered = Mapped Filter ([I] =>> I < 14)
+type Filtered = Mapped `Filter` ([I] =>> I < 14)
 
 type Result = 
   Fold[Filtered, "", ([I, Acc] =>> ToString[I] ++ Acc)]
@@ -1008,7 +1008,7 @@ type HasAtMostFields[MaxSize <: Int] = Check[
 - And create a `Check` with a `Fields` argument here
 
 --
-  (Size[Fields] <= MaxSize) OrFailWith 
+  (Size[Fields] <= MaxSize) `OrFailWith` 
     "Too many fields in class: " ++ 
     ToString[Size[Fields]] ++ " > " ++ ToString[MaxSize]
 ???
@@ -1114,8 +1114,8 @@ type ExactlyOneOf[Type, TypeName <: String] = Check[
 
 ```scala
 type CollectFieldsOfType[Type, Fields <: Tuple] =
-  Fields Filter 
-    ([Field] =>> GetFieldType[Field] Subtype Type)
+  Fields `Filter` 
+    ([Field] =>> GetFieldType[Field] `Subtype` Type)
 ```
 
 ???
@@ -1125,7 +1125,7 @@ type CollectFieldsOfType[Type, Fields <: Tuple] =
 --
 ```scala
 type RenderFieldList[Fields <: Tuple] =
-  MkString[Fields Map GetFieldName]
+  MkString[Fields `Map` GetFieldName]
 ```
 ???
 - Rendering the fields fetches the field names
@@ -1165,7 +1165,7 @@ layout: true
 type CheckAllFields[C[_]] =
   Check[
     [Fields <: Tuple] =>> 
-      Fields FlatMap ApplyToField[C]
+      Fields `FlatMap` ApplyToField[C]
   ]
 ```
 
@@ -1180,7 +1180,7 @@ type CheckAllFields[C[_]] =
 
 ```scala
 type ApplyToField[C[_]] = 
-  [Field] =>> C[Field] Map RenderFieldError[Field]
+  [Field] =>> C[Field] `Map` RenderFieldError[Field]
 ```
 ???
 - For a given field, apply the check to the field
@@ -1228,7 +1228,7 @@ type StringFieldsAtMost[MaxSize <: Int] = CheckAllFields[
   GetFieldType[Field] match
  
     case SizedString[n] =>
-      (n <= MaxSize) OrFailWith
+      (n <= MaxSize) `OrFailWith`
         "string is too large: " ++
         ToString[n] ++ " > " ++ ToString[MaxSize]
 
@@ -1263,7 +1263,7 @@ type HasPrefix[Prefix <: String] = CheckAllFields[
   [Field] =>> 
   
     Matches[
-      GetFieldName[Field], Prefix ++ ".*"] OrFailWith
+      GetFieldName[Field], Prefix ++ ".*"] `OrFailWith`
       "field is missing prefix [" ++ Prefix ++ "]"
 ]
 ```
@@ -1346,7 +1346,7 @@ layout: true
 
 ```scala
 type CheckAll[Fields <: Tuple, Checks <: Tuple] =
-  Checks FlatMap ApplyCheck[Fields]
+  Checks `FlatMap` ApplyCheck[Fields]
 ```
 
 ???
@@ -1366,7 +1366,7 @@ type RenderErrors[Errors <: Tuple, TypeName <: String] =
  
 ```scala
 type Itemize[Errors <: Tuple] =
-  Errors Map ([Err] =>> "- " ++ Err)
+  Errors `Map` ([Err] =>> "- " ++ Err)
 ```
 
 ???
