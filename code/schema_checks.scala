@@ -1,6 +1,6 @@
 package ncreep
 
-import scala.Tuple.*
+import scala.Tuple.{++ => _, *}
 import scala.compiletime.ops.any.ToString
 import scala.compiletime.ops.int.{ToString => _, *}
 import scala.compiletime.ops.string.Matches

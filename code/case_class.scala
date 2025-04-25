@@ -3,6 +3,7 @@ package ncreep
 import scala.Tuple.*
 import scala.deriving.Mirror
 import scala.compiletime.*
+import scala.annotation.nowarn
 
 /** An alternative to `Mirror` that makes it easier to work with fields and their types. */
 trait CaseClass[A]:
@@ -23,6 +24,9 @@ object CaseClass:
 
   // for some reason the `Size` type can't be used in `constValue[ToString[Size]]`
   // in certain contexts if this is not marked as `inline`, no idea why...
+  //
+  // the warning below doesn't matter for presentation purposes
+  @nowarn("msg=New anonymous class definition will be duplicated at each inline site")
   inline given [A](
       using m: Mirror.ProductOf[A]): CaseClass.Aux[
     A,

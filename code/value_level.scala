@@ -2,7 +2,7 @@ package ncreep.value_level
 
 import ncreep.*
 
-import scala.Tuple.*
+import scala.Tuple.{++ => _, *}
 import scala.compiletime.*
 import scala.compiletime.ops.any.ToString
 
